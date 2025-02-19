@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Check Weight HPW</title>
+
+    <style>
+      /* style.css */
+      body {
+        margin: 0;
+        padding: 20px;
+        font-family: sans-serif;
+      }
+
+      h1 {
+        text-align: center;
+      }
+
+      #drop-area {
+        width: 400px;
+        height: 200px;
+        margin: 20px auto;
+        text-align: center;
+        line-height: 200px;
+        border: 2px dashed #ccc;
+        cursor: pointer;
+      }
+
+      #preview-container {
+        text-align: center;
+      }
+
+      #drop-area.drag-over {
+        background-color: #eee;
+      }
+
+      .preview-image {
+        width: 100px;
+        height: 100px;
+        object-fit: cover;
+        margin: 10px;
+      }
+
+      .preview-text {
+        margin: 10px;
+        font-size: 16px;
+        color: cadetblue;
+      }
+      #preview-container {
+        text-align: center;
+        margin-top: 20px;
+      }
+      #invalid-rows {
+        max-height: 150px;
+        overflow-y: auto;
+        border: 1px solid #ccc;
+        padding: 10px;
+        margin-top: 10px;
+      }
+      table {
+        width: 100%;
+        border-collapse: collapse;
+      }
+      th,
+      td {
+        border: 1px solid #ddd;
+        padding: 8px;
+        text-align: center;
+      }
+      th {
+        background-color: #f4f4f4;
+      }
+      .highlight {
+        background-color: red;
+        color: white;
+      }
+
+
+    </style>
+  </head>
+
+  <body>
+    <h1>Drag-and-Drop File Uploader</h1>
+    <div id="drop-area">Drag here to preview</div>
+    <input type="file" id="file-input" hidden />
+    <div id="preview-container"></div>
+    <div style="display: flex; justify-content: right; gap: 10px;">
+<div style="
+background-color: cadetblue;
+border-radius: 999px;
+padding: 10px 15px;
+color: #ffffff;
+cursor: pointer;
+" title="Cho file vào ô bên trên. Ứng dụng sẽ kiểm tra xem Reference number,Tracking number
+,Gross weight - Actual (kg),Charge weight (kg) kiểm tra hợp lệ và trả về bên dưới.">Hướng dẫn</div>
+      <div
+        id="exportExcel"
+        style="
+          background-color: cadetblue;
+          border-radius: 999px;
+          padding: 10px 15px;
+          color: #ffffff;
+          cursor: pointer;
+        "
+      >
+        Xuất Excel
+      </div>
+    </div>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.17.5/xlsx.full.min.js"></script>
+
+    <script>
+      const dropArea = document.getElementById("drop-area");
+      const fileInput = document.getElementById("file-input");
+      const invalidRowsContainer = document.getElementById("invalid-rows");
+      let invalidRows = []; 
+
+      // Utility function to prevent default browser behavior
+      function preventDefaults(e) {
+        e.preventDefault();
+        e.stopPropagation();
+      }
+
+      // Preventing default browser behavior when dragging a file over the container
+      dropArea.addEventListener("dragover", preventDefaults);
+      dropArea.addEventListener("dragenter", preventDefaults);
+      dropArea.addEventListener("dragleave", preventDefaults);
+
+      // Handling dropping files into the area
+      dropArea.addEventListener("drop", handleDrop);
+
+      function handleDrop(e) {
+        e.preventDefault();
+
+        // Getting the list of dragged files
+        const files = e.dataTransfer.files;
+
+        // Checking if there are any files, only take the first file
+        if (files.length === 1 && isValidExcelFile(files[0])) {
+          fileInput.files = files;
+
+          // Processing the file
+          handleFiles(files[0]);
+        } else {
+          alert("Please upload only one Excel file.");
+        }
+      }
+
+      function isValidExcelFile(file) {
+        const allowedTypes = [
+          "application/vnd.ms-excel",
+          "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        ];
+        return allowedTypes.includes(file.type);
+      }
+
+      dropArea.addEventListener("dragover", () => {
+        dropArea.classList.add("drag-over");
+      });
+
+      dropArea.addEventListener("dragleave", () => {
+        dropArea.classList.remove("drag-over");
+      });
+
+      // handle file ở đây
+      function handleFiles(file) {
+        // Clear the preview container before adding new content
+        const previewContainer = document.getElementById("preview-container");
+        previewContainer.innerHTML = ""; // Clears all previous previews
+       
+        // Initialize the FileReader API
+        const reader = new FileReader();
+        reader.readAsBinaryString(file);
+
+        reader.onload = function (e) {
+          const data = e.target.result;
+
+          // Read the Excel file using SheetJS
+          const workbook = XLSX.read(data, { type: "binary" });
+
+          // Get data from the first sheet
+          const sheetName = workbook.SheetNames[0];
+          const sheet = workbook.Sheets[sheetName];
+
+          // Convert the sheet data to JSON
+          const jsonData = XLSX.utils.sheet_to_json(sheet, { header: 1 });
+
+          // Display the data (You can further process it as needed)
+          console.log(jsonData);
+
+          // Find the column indexes for the specified headers
+          const headers = jsonData[0]; // The first row contains the headers
+          const requiredColumns = [
+            "Reference number",
+            "Tracking number",
+            "Gross weight - Actual (kg)",
+            "Charge weight (kg)",
+          ];
+
+          const columnIndexes = requiredColumns
+            .map((columnName) => {
+              const index = headers.indexOf(columnName);
+              return index !== -1 ? index : null; // Return null if column is not found
+            })
+            .filter((index) => index !== null); // Remove any nulls
+
+          // Assuming the mảng with values for comparison
+          const comparisonArray = [
+            [100, 100],
+            [150, 150],
+            [200, 200],
+            [250, 250],
+            [300, 300],
+            [350, 350],
+            [400, 400],
+            [450, 450],
+            [500, 500],
+            [550, 550],
+            [600, 600],
+            [650, 650],
+            [700, 700],
+            [800, 800],
+            [900, 900],
+            [1000, 1000],
+            [1300, 1300],
+            [1500, 1500],
+            [1800, 1800],
+            [2000, 2000],
+            [2200, 2200],
+            [2500, 2500],
+            [3000, 3000],
+            [3500, 3500],
+            [4000, 4000],
+            [4500, 4500],
+            [5000, 5000],
+            [5500, 5500],
+            [6000, 6000],
+            [6500, 6500],
+            [7000, 7000],
+            [7500, 7500],
+            [8000, 8000],
+            [8500, 8500],
+            [9000, 9000],
+            [9500, 9500],
+            [10000, 10000],
+          ];
+
+          
+          invalidRows = []
+          // Loop through each row in the Excel data (starting from row 1)
+          for (let i = 1; i < jsonData.length; i++) {
+            const row = jsonData[i];
+            const grossWeight = row[columnIndexes[2]]; // Get Gross weight value (3rd column)
+            const chargeWeight = row[columnIndexes[3]]; // Get Charge weight value (4th column)
+            if (grossWeight && chargeWeight) {
+              // Find the range where grossWeight fits
+              let expectedChargeWeight = null;
+
+              for (let j = 0; j < comparisonArray.length - 1; j++) {
+                if (grossWeight * 1000 === comparisonArray[j][0]) {
+                  expectedChargeWeight = comparisonArray[j][1];
+                  break;
+                } else if (
+                  grossWeight * 1000 >= comparisonArray[j][0] &&
+                  grossWeight * 1000 < comparisonArray[j + 1][0]
+                ) {
+                  expectedChargeWeight = comparisonArray[j + 1][1];
+                  break;
+                }
+              }
+
+              // If the charge weight doesn't match the expected value, it's invalid
+              if (
+                expectedChargeWeight !== null &&
+                expectedChargeWeight !== chargeWeight * 1000
+              ) {
+                invalidRows.push([
+                  row[columnIndexes[0]], // Reference number
+                  row[columnIndexes[1]], // Tracking number
+                  grossWeight,
+                  chargeWeight,
+                  expectedChargeWeight / 1000, // Charge weight "expected" (divided by 1000)
+                ]);
+              }
+            }
+          }
+
+          // Log the rows that are invalid
+          if (invalidRows.length > 0) {
+            console.log("Invalid rows:", invalidRows);
+          } else {
+            console.log("All rows are valid!");
+          }
+
+          // Optionally show the preview of the file name
+          const previewText = document.createElement("p");
+          previewText.classList.add("preview-text");
+          previewText.textContent = `Excel file uploaded: ${file.name}`;
+
+          previewContainer.appendChild(previewText);
+
+          if (invalidRows.length > 0) {
+            let tableHtml =
+              '<table><tr><th>Reference No.</th><th>Tracking No.</th><th>Gross Weight</th><th>Charge Weight</th><th class="highlight">Expected Charge</th></tr>';
+            invalidRows.slice(0, 5).forEach((row) => {
+              tableHtml += `<tr><td>${row[0]}</td><td>${row[1]}</td><td>${row[2]}</td><td>${row[3]}</td><td class="highlight">${row[4]}</td></tr>`;
+            });
+            tableHtml += "</table>";
+            invalidRowsContainer.innerHTML = tableHtml;
+          } else {
+            invalidRowsContainer.innerHTML = "<p>All rows are valid!</p>";
+          }
+        };
+      }
+
+      document
+        .getElementById("exportExcel")
+        .addEventListener("click", function () {
+          if (invalidRows.length > 0) {
+            // Create a new workbook
+            const wb = XLSX.utils.book_new();
+
+            // Convert invalidRows to a worksheet
+            const ws = XLSX.utils.aoa_to_sheet([
+              [
+                "Reference No.",
+                "Tracking No.",
+                "Gross Weight",
+                "Charge Weight",
+                "Expected Charge",
+              ], // Header
+              ...invalidRows, // Data rows
+            ]);
+
+            // Append the worksheet to the workbook
+            XLSX.utils.book_append_sheet(wb, ws, "Invalid Rows");
+
+            // Export the workbook as an Excel file
+            XLSX.writeFile(wb, "Invalid_Rows.xlsx");
+          } else {
+            alert("No invalid rows to export.");
+          }
+        }); 
+    </script>
+  </body>
+</html>
