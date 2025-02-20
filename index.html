@@ -75,8 +75,6 @@
         background-color: red;
         color: white;
       }
-
-
     </style>
   </head>
 
@@ -85,15 +83,33 @@
     <div id="drop-area">Drag here to preview</div>
     <input type="file" id="file-input" hidden />
     <div id="preview-container"></div>
-    <div style="display: flex; justify-content: right; gap: 10px;">
-<div style="
-background-color: cadetblue;
-border-radius: 999px;
-padding: 10px 15px;
-color: #ffffff;
-cursor: pointer;
-" title="Cho file vào ô bên trên. Ứng dụng sẽ kiểm tra xem Reference number,Tracking number
-,Gross weight - Actual (kg),Charge weight (kg) kiểm tra hợp lệ và trả về bên dưới.">Hướng dẫn</div>
+    <div style="display: flex; justify-content: right; gap: 10px">
+      <div
+        style="
+          background-color: cadetblue;
+          border-radius: 999px;
+          padding: 10px 15px;
+          color: #ffffff;
+          cursor: pointer;
+        "
+        title="Cho file vào ô bên trên. Ứng dụng sẽ kiểm tra xem Reference number,Tracking number
+,Gross weight - Actual (kg),Charge weight (kg) kiểm tra hợp lệ và trả về bên dưới."
+      >
+        Hướng dẫn
+      </div>
+      <div
+        id="copyTracking"
+        style="
+          background-color: cadetblue;
+          border-radius: 999px;
+          padding: 10px 15px;
+          color: #ffffff;
+          cursor: pointer;
+        "
+      >
+        Copy Tracking Numbers
+      </div>
+
       <div
         id="exportExcel"
         style="
@@ -114,7 +130,7 @@ cursor: pointer;
       const dropArea = document.getElementById("drop-area");
       const fileInput = document.getElementById("file-input");
       const invalidRowsContainer = document.getElementById("invalid-rows");
-      let invalidRows = []; 
+      let invalidRows = [];
 
       // Utility function to prevent default browser behavior
       function preventDefaults(e) {
@@ -168,7 +184,7 @@ cursor: pointer;
         // Clear the preview container before adding new content
         const previewContainer = document.getElementById("preview-container");
         previewContainer.innerHTML = ""; // Clears all previous previews
-       
+
         // Initialize the FileReader API
         const reader = new FileReader();
         reader.readAsBinaryString(file);
@@ -246,8 +262,7 @@ cursor: pointer;
             [10000, 10000],
           ];
 
-          
-          invalidRows = []
+          invalidRows = [];
           // Loop through each row in the Excel data (starting from row 1)
           for (let i = 1; i < jsonData.length; i++) {
             const row = jsonData[i];
@@ -341,7 +356,33 @@ cursor: pointer;
           } else {
             alert("No invalid rows to export.");
           }
-        }); 
+        });
+
+      // Thêm sự kiện cho nút copy
+      document
+        .getElementById("copyTracking")
+        .addEventListener("click", function () {
+          if (invalidRows.length > 0) {
+            // Lấy cột Tracking number từ invalidRows
+            const trackingNumbers = invalidRows.map((row) => row[1]); // Cột Tracking number nằm ở vị trí index 1
+
+            // Chuyển mảng thành chuỗi với mỗi Tracking number nằm trên một dòng
+            const textToCopy = trackingNumbers.join("\n");
+
+            // Sử dụng Clipboard API để sao chép
+            navigator.clipboard
+              .writeText(textToCopy)
+              .then(() => {
+                alert("Tracking numbers copied to clipboard!");
+              })
+              .catch((err) => {
+                console.error("Error copying text: ", err);
+                alert("Failed to copy Tracking numbers.");
+              });
+          } else {
+            alert("No invalid rows to copy.");
+          }
+        });
     </script>
   </body>
 </html>
