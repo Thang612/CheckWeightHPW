@@ -318,7 +318,7 @@
           if (invalidRows.length > 0) {
             let tableHtml =
               '<table><tr><th>Reference No.</th><th>Tracking No.</th><th>Gross Weight</th><th>Charge Weight</th><th class="highlight">Expected Charge</th></tr>';
-            invalidRows.slice(0, 5).forEach((row) => {
+            invalidRows.forEach((row) => {
               tableHtml += `<tr><td>${row[0]}</td><td>${row[1]}</td><td>${row[2]}</td><td>${row[3]}</td><td class="highlight">${row[4]}</td></tr>`;
             });
             tableHtml += "</table>";
